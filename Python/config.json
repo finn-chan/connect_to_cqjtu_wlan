@@ -1,6 +1,6 @@
 {
-  "userid": "",
-  "password": "",
+  "userid": "請在這裏輸入學號",
+  "password": "請在這裏輸入密碼",
   "generate_204": "http://connect.rom.miui.com/generate_204",
   "school_url": "http://ms.cqjtu.edu.cn/#/",
   "log_in_page": "http://172.19.1.2/0.htm",

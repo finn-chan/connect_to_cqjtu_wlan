@@ -1,0 +1,11 @@
+登入校園網 移動端
+https://www.icloud.com/shortcuts/080d4c193a51479096f2ba7eb75be97b
+
+登入校園網 電腦端
+https://www.icloud.com/shortcuts/7f4adfd9fdff4370a44c60f7cc12a204
+
+登出校園網
+https://www.icloud.com/shortcuts/a1c2b59699f5426e8bca3b47155556ba
+
+網絡測試
+https://www.icloud.com/shortcuts/beddf59851834c4280a2b5d5ce90d069
