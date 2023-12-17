@@ -1,0 +1,12 @@
+{
+  "userid": "",
+  "password": "",
+  "generate_204": "http://connect.rom.miui.com/generate_204",
+  "school_url": "http://ms.cqjtu.edu.cn/#/",
+  "log_in_page": "http://172.19.1.2/0.htm",
+  "log_out_page": "http://172.19.1.2/F.htm",
+  "ifttt": 0,
+  "webhook_name": "",
+  "webhook_key": "",
+  "timeout": 5
+}
