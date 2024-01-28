@@ -87,23 +87,23 @@ fi
 
 main() {
     # 校園網帳戶
-    local userid=632107110204
+    local userid=學號
 
     # 校園網密碼
-    local password=166519
+    local password=校園網密碼
 
     # 校園網運營商
     # 教師：空
     # 移動：@cmcc
     # 電信：@telecom
     # 聯通：@unicon
-    local isp=@cmcc
+    local isp=校園網運營商
 
     # Webhook 名稱
-    local webhook_name=Forward_Message
+    local webhook_name=
 
     # Webhook 金鑰
-    local webhook_key=dCKnPml0kqC8lJ0i2doycf
+    local webhook_key=
 
     # 登錄次數
     local login_count=0
