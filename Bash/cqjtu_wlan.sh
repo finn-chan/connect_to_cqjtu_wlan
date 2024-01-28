@@ -2,7 +2,7 @@
 # Automatically Log In To The Campus Network With Mobile Login
 # 自動登入校園網，以移動端登入
 # Copyright (C) 2023 Finn Chan <life4aran@gmail.com>
-# v1.1
+# v1.2
 
 NAME=cqjtu_wlan
 LOG_FILE=/var/log/$NAME.log
@@ -58,6 +58,31 @@ send_webhook_notification() {
     else
         return 1
     fi
+}
+
+# 檢查應是否關機
+check_shutdown(){
+    # 獲取當前時間的小時和分鐘
+    current_hour=$(date +%H)
+    current_minute=$(date +%M)
+
+    # 將當前時間轉換爲分鐘數
+    current_time_in_minutes=$((current_hour * 60 + current_minute))
+
+    # 將 22:58 和 23:00 轉換為分鐘數
+    start_time_in_minutes=$((22 * 60 + 58))
+    end_time_in_minutes=$((23 * 60))
+
+    # 判斷當前時間是否在 22:58 至 23:00 之間
+    if [ "$current_time_in_minutes" -ge "$start_time_in_minutes" ] && [ "$current_time_in_minutes" -le "$end_time_in_minutes" ]; then
+        # 獲取明日信息
+        tomorrow_date=$(date +%Y-%m-%d -d @$(( $(date +%s) + 86400 )))
+        response=$(python3 power_outage.py "$tomorrow_date")
+
+        if [ $response = 1 ]; then
+            poweroff
+        fi
+fi
 }
 
 main() {
@@ -145,6 +170,9 @@ main() {
         else
             echo "$(date '+%Y-%m-%d %H:%M:%S') - Network Abnormal" | tee -a $LOG_FILE
         fi
+        
+        # 檢查應是否關機
+        check_shutdown
 
         sleep 60
         
