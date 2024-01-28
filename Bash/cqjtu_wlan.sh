@@ -1,6 +1,11 @@
 #!/bin/sh
+# Automatically Log In To The Campus Network With Mobile Login
 # 自動登入校園網，以移動端登入
-# Created by Yuifun
+# Copyright (C) 2023 Finn Chan <life4aran@gmail.com>
+# v1.1
+
+NAME=cqjtu_wlan
+LOG_FILE=/var/log/$NAME.log
 
 # 檢測網路狀態
 check_network_status() {
@@ -20,10 +25,8 @@ login() {
 
     # 檢查是否登入成功
     if echo ${login_response} | grep -q "result\":1"; then
-        echo "登入成功"
         return 0
     else
-        echo "登入失敗"
         return 1
     fi
 }
@@ -34,63 +37,118 @@ send_webhook_notification() {
     local webhook_key=$2
 
     # 獲取並列印主機名稱
-    hostname="YUIs $(cat /proc/sys/kernel/hostname)"
+    hostname="Finn $(cat /proc/sys/kernel/hostname)"
     device_name=$(python -c "import urllib.parse; print(urllib.parse.quote('''$hostname'''))")
 
     # 對字符串進行兩次 URL 編碼
     clue=$(python -c "import urllib.parse; print(urllib.parse.quote('''校園網已連接'''))")
 
-    # 使用 ip 命令獲取 IPv4 地址
+    # 獲取 IPv4 地址
     ip_address=$(ip addr show dev 'eth1' | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
-    
+
     # 為 IPv4 地址添加鏈接
     encode_words=$(python -c "import urllib.parse; print(urllib.parse.quote('''$device_name%0A$clue%0A[$ip_address](http://$ip_address)&parse_mode=Markdown'''))")
 
     # 發送 Webhook
-    curl "https://maker.ifttt.com/trigger/$webhook_name/with/key/$webhook_key?value1=$encode_words"
+    response=$(curl -w "%{http_code}" -o /dev/null -s "https://maker.ifttt.com/trigger/$webhook_name/with/key/$webhook_key?value1=$encode_words")
+    
+    # 檢查返回的狀態碼
+    if [ "$response" -eq 200 ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 main() {
-    # sleep 30
-    
     # 校園網帳戶
-    local userid= "請在這裏輸入學號"
-    
+    local userid=632107110204
+
     # 校園網密碼
-    local password= "請在這裏輸入密碼"
-    
+    local password=166519
+
     # 校園網運營商
     # 教師：空
     # 移動：@cmcc
     # 電信：@telecom
     # 聯通：@unicon
-    local isp= "選擇上方的運營商"
+    local isp=@cmcc
 
-    # # Webhook 名稱
-    # local webhook_name=
-    #
-    # # Webhook 金鑰
-    # local webhook_key=
+    # Webhook 名稱
+    local webhook_name=Forward_Message
 
-    # 檢測網路狀態
-    http_status=$(check_network_status)
+    # Webhook 金鑰
+    local webhook_key=dCKnPml0kqC8lJ0i2doycf
+
+    # 登錄次數
+    local login_count=0
     
-    # 判斷是否登入
-    if [ "${http_status}" = "204" ]; then
-        echo "檢測到已登入"
-        send_webhook_notification $webhook_name $webhook_key
-    elif [ "${http_status}" = "200" ]; then
-        echo "檢測到未登入，嘗試登入"
-        if login $userid $password $isp; then
-            echo "登入成功"
-            # sleep 10
-            # send_webhook_notification $webhook_name $webhook_key
+    # 上一次 IPV4 地址
+    local previous_ip_address=0
+
+    while true; do
+        # 檢測網路狀態
+        http_status=$(check_network_status)
+        
+        # 獲取當前 IPv4 地址
+        current_ip_address=$(ip addr show dev 'eth1' | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+        
+        # 已登入
+        if [ "${http_status}" = "204" ]; then
+            
+            login_count=$((login_count + 1))
+            
+            if [ "$current_ip_address" != "$previous_ip_address" ]; then
+                
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Detected" | tee -a $LOG_FILE
+                
+                # 發送成功
+                if send_webhook_notification $webhook_name $webhook_key; then
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Sucessful" | tee -a $LOG_FILE
+                    previous_ip_address=$current_ip_address
+                
+                # 發送失敗
+                else
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Failure" | tee -a $LOG_FILE
+                fi
+            fi
+            
+        # 未登入
+        elif [ "${http_status}" = "200" ]; then
+            # 登入成功
+            if login $userid $password $isp; then
+                
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Successful" | tee -a $LOG_FILE
+                login_count=$((login_count + 1))
+                
+                if [ "$current_ip_address" != "$previous_ip_address" ]; then
+                    # 發送成功
+                    if send_webhook_notification $webhook_name $webhook_key; then
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Sucessful" | tee -a $LOG_FILE
+                        previous_ip_address=$current_ip_address
+                    
+                    # 發送失敗
+                    else
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Failure" | tee -a $LOG_FILE
+                    fi
+                    
+                else
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     No Send" | tee -a $LOG_FILE
+            fi
+              
+            # 登入失敗  
+            else
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Failure" | tee -a $LOG_FILE
+            fi
+        
+        # 網絡錯誤    
         else
-            echo "登入失敗"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Network Abnormal" | tee -a $LOG_FILE
         fi
-    else
-        echo "網路狀態異常"
-    fi
+
+        sleep 60
+        
+    done
 }
 
 main

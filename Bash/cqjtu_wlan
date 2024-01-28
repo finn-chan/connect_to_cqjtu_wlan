@@ -1,0 +1,27 @@
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2023 Yuifun Chan <life4aran@gmail.com>
+
+
+START=99
+STOP=50
+
+NAME=cqjtu_wlan
+PROG=/home/$NAME.sh
+LOG_FILE=/var/log/$NAME.log
+
+start() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting $NAME Script" >> $LOG_FILE
+    $PROG &
+}
+
+stop() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Stopping $NAME Script" >> $LOG_FILE
+    kill $(ps | grep "$PROG" | grep -v 'grep' | awk '{print $1}')
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
