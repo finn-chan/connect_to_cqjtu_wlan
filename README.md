@@ -1,6 +1,6 @@
 # 自動登入校園網
 
-本脚本實現了對 2024 年新系統和 2023 年舊系統校園網自動登錄功能，以及發送通知訊息
+本脚本實現了對 2024 年新系統和 2023 年舊系統校園網自動登錄功能，以及發送登入訊息
 
 **請填写校园网账户和密码，并根據自身情況修改或刪除 Webhook 部分**
 
@@ -10,8 +10,8 @@
 | :----: | :----: |
 | userid | 校園網賬戶（學號） |
 | password | 校園網密碼 |
-| webhook_name | 發送通知訊息時的 Webhook 名稱 |
-| webhook_key | 發送通知訊息時的 Webhook 密鑰 |
+| webhook_name | 發送登入訊息時的 Webhook 名稱 |
+| webhook_key | 發送登入訊息時的 Webhook 密鑰 |
 
 ## Windows
 
@@ -31,7 +31,9 @@
 
 ### 啓動項
 
-請在 `Bash` 資料夾中的 cqjtu_waln.sh 檔案中填寫相應信息 
+請在 `Bash` 資料夾中的 cqjtu_waln.sh 檔案中填寫相應信息
+
+變量 ifttt 默認為 0，默認不發送登入訊息
 
 再將資料夾中的 cqjtu_wlan 檔案複製到 /etc/init.d/，其它的 .sh .py 檔案複製到 /home/
 
