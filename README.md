@@ -2,11 +2,22 @@
 
 本脚本實現了對 2024 年新系統和 2023 年舊系統校園網自動登錄功能，以及發送通知訊息
 
-**請根據自身情況修改或刪除 IFTTT 部分 Webhook**
+**請填写校园网账户和密码，并根據自身情況修改或刪除 Webhook 部分**
+
+## 變量介紹
+
+| 變量名 | 介紹 |
+| :----: | :----: |
+| userid | 校園網賬戶（學號） |
+| password | 校園網密碼 |
+| webhook_name | 發送通知訊息時的 Webhook 名稱 |
+| webhook_key | 發送通知訊息時的 Webhook 密鑰 |
 
 ## Windows
 
-將 Python 文件打包成 exe 文件即可運行使用
+請在 `Python` 資料夾中的 config.json 檔案中填寫相應信息
+
+再將 main.py 檔案打包成 exe 檔案即可運行使用
 
     pyinstaller -F -w .\Python\main.py
 
@@ -20,7 +31,9 @@
 
 ### 啓動項
 
-將 `Bash` 文件夾中的 cqjtu_wlan 文件複製到 /etc/init.d/，其它的 .sh .py 文件複製到 /home/
+請在 `Bash` 資料夾中的 cqjtu_waln.sh 檔案中填寫相應信息 
+
+再將資料夾中的 cqjtu_wlan 檔案複製到 /etc/init.d/，其它的 .sh .py 檔案複製到 /home/
 
 將啓動項設置開機自啓動並運行
 
