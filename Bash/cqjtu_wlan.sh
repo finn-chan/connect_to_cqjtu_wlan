@@ -1,17 +1,49 @@
 #!/bin/sh
 # Automatically Log In To The Campus Network With Mobile Login
 # 自動登入校園網，以移動端登入
-# Copyright (c) 2023 Finn Chan <life4aran@gmail.com>
-# v1.4
+# Copyright (c) 2023-2024 Finn Chan <life4aran@gmail.com>
+# v1.5
+
 
 NAME=cqjtu_wlan
 LOG_FILE=/var/log/$NAME.log
 
-# 檢測網路狀態
+# 日志輸出模式
+# 0 - 不輸出日志
+# 1 - 輸出關鍵日志
+# 2 - 輸出全部日志
+LOG_LEVEL=1
+
+# 檢查網路狀態
 check_network_status() {
     http_status=$(curl -o /dev/null -s -w '%{http_code}' "http://connect.rom.miui.com/generate_204")
     # 直接 return 狀態碼會判斷錯誤
     echo $http_status
+}
+
+# 檢查應是否關機
+check_shutdown(){
+    # 獲取當前時間的小時和分鐘
+    current_hour=$(date +%H)
+    current_minute=$(date +%M)
+
+    # 將當前時間轉換爲分鐘數
+    current_time_in_minutes=$((current_hour * 60 + current_minute))
+
+    # 將 22:58 和 23:00 轉換為分鐘數
+    start_time_in_minutes=$((22 * 60 + 58))
+    end_time_in_minutes=$((23 * 60))
+
+    # 判斷當前時間是否在 22:58 至 23:00 之間
+    if [ "$current_time_in_minutes" -ge "$start_time_in_minutes" ] && [ "$current_time_in_minutes" -le "$end_time_in_minutes" ]; then
+        # 獲取明日信息
+        tomorrow_date=$(date +%Y-%m-%d -d @$(( $(date +%s) + 86400 )))
+        response=$(python3 power_outage.py "$tomorrow_date")
+
+        if [ $response = 1 ]; then
+            poweroff
+        fi
+fi
 }
 
 # 登入
@@ -31,7 +63,29 @@ login() {
     fi
 }
 
-# 發送 Webhook 通知
+# 輸出日志
+log_message(){
+	# 日志類型
+	# 0 - 非關鍵日志
+	# 1 - 關鍵日志
+	local log_level=$1
+
+	shift
+    local message=$*
+
+	# 輸出關鍵日志
+	if [ "$LOG_LEVEL" -eq 1 ]; then
+		if [ "$log_level" -eq 1 ]; then
+			echo "$(date '+%Y-%m-%d %H:%M:%S') - $message" | tee -a $LOG_FILE
+		fi
+
+	# 輸出全部日志
+	elif [ "$LOG_LEVEL" -eq 2 ]; then
+		echo "$(date '+%Y-%m-%d %H:%M:%S') - $message" | tee -a $LOG_FILE
+	fi
+}
+
+# 發送 Webhook 訊息
 send_webhook_notification() {
     local webhook_domain=$1
     local webhook_name=$2
@@ -64,44 +118,20 @@ send_webhook_notification() {
     fi
 }
 
-# 檢查應是否關機
-check_shutdown(){
-    # 獲取當前時間的小時和分鐘
-    current_hour=$(date +%H)
-    current_minute=$(date +%M)
-
-    # 將當前時間轉換爲分鐘數
-    current_time_in_minutes=$((current_hour * 60 + current_minute))
-
-    # 將 22:58 和 23:00 轉換為分鐘數
-    start_time_in_minutes=$((22 * 60 + 58))
-    end_time_in_minutes=$((23 * 60))
-
-    # 判斷當前時間是否在 22:58 至 23:00 之間
-    if [ "$current_time_in_minutes" -ge "$start_time_in_minutes" ] && [ "$current_time_in_minutes" -le "$end_time_in_minutes" ]; then
-        # 獲取明日信息
-        tomorrow_date=$(date +%Y-%m-%d -d @$(( $(date +%s) + 86400 )))
-        response=$(python3 power_outage.py "$tomorrow_date")
-
-        if [ $response = 1 ]; then
-            poweroff
-        fi
-fi
-}
 
 main() {
     # 校園網帳戶
-    local userid=學號
+    local userid=教工號或學號
 
     # 校園網密碼
-    local password=校園網密碼
+    local password=初始密碼為身份證后六位
 
     # 校園網運營商
-    # 教師：空
-    # 移動：@cmcc
-    # 電信：@telecom
-    # 聯通：@unicon
-    local isp=校園網運營商
+    # 空值 - 教師
+    # @cmcc - 移動
+    # @telecom - 電信
+    # @unicon - 聯通
+    local isp=@cmcc
 
     # Webhook 網域
     local webhook_domain=
@@ -111,6 +141,7 @@ main() {
 
     # Webhook 金鑰
     local webhook_key=
+
 
     # 登錄次數
     local login_count=0
@@ -131,58 +162,69 @@ main() {
             login_count=$((login_count + 1))
 
             if [ "$current_ip_address" != "$previous_ip_address" ]; then
-
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Detected" | tee -a $LOG_FILE
+				message="Login Detected"
+				log_message 1 $message
 
                 # 發送成功
                 if send_webhook_notification $webhook_domain $webhook_name $webhook_key; then
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Sucessful" | tee -a $LOG_FILE
+					message=".... Send Sucessful"
+					log_message 1 $message
                     previous_ip_address=$current_ip_address
 
                 # 發送失敗
                 else
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Failure" | tee -a $LOG_FILE
+					message=".... Send Failure"
+					log_message 1 $message
                 fi
+
+			else
+				message="Login Detected"
+				log_message 0 $message
             fi
 
         # 未登入
         elif [ "${http_status}" = "200" ]; then
             # 登入成功
             if login $userid $password $isp; then
-
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Successful" | tee -a $LOG_FILE
+				message="Login Successful"
+				log_message 1 $message
                 login_count=$((login_count + 1))
 
                 if [ "$current_ip_address" != "$previous_ip_address" ]; then
                     # 發送成功
-                    if send_webhook_notification $webhook_name $webhook_key; then
-                        echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Sucessful" | tee -a $LOG_FILE
+                    if send_webhook_notification $webhook_domain $webhook_name $webhook_key; then
+						message=".... Send Sucessful"
+						log_message 1 $message
                         previous_ip_address=$current_ip_address
 
                     # 發送失敗
                     else
-                        echo "$(date '+%Y-%m-%d %H:%M:%S') -     Send Failure" | tee -a $LOG_FILE
+						message=".... Send Failure"
+						log_message 1 $message
                     fi
 
                 else
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') -     No Send" | tee -a $LOG_FILE
+					message=".... No Send"
+					log_message 1 $message
             fi
 
             # 登入失敗
             else
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - Login Failure" | tee -a $LOG_FILE
+				message="Login Failure"
+				log_message 1 $message
             fi
 
         # 網絡錯誤
         else
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - Network Abnormal" | tee -a $LOG_FILE
+			message="Network Abnormal"
+			log_message 1 $message
         fi
 
         # 檢查應是否關機
-        check_shutdown
+        #check_shutdown
 
         sleep 60
-        
+
     done
 }
 
