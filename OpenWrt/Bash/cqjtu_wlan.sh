@@ -130,8 +130,8 @@ main() {
     # 空值 - 教師
     # @cmcc - 移動
     # @telecom - 電信
-    # @unicon - 聯通
-    local isp=@cmcc
+    # @unicom - 聯通
+    local isp=
 
     # Webhook 網域
     local webhook_domain=
@@ -221,7 +221,7 @@ main() {
         fi
 
         # 檢查應是否關機
-        #check_shutdown
+        # check_shutdown
 
         sleep 60
 
